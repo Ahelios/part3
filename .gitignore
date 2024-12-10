@@ -1,1 +1,8 @@
+# Dependencies
 /node_modules
+
+# Notes folder
+/notes/
+
+# OS files
+.DS_Store 

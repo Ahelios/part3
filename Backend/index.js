@@ -2,6 +2,8 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const path = require('path')
+require('dotenv').config()
+const Person = require('./models/person')
 
 const app = express();
 
@@ -42,7 +44,9 @@ const generateId = () => {
 }
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+  Person.find({}).then(persons => {
+    response.json(persons)
+  })
 })
 
 app.get('/info', (request, response) => {
@@ -91,16 +95,19 @@ app.post('/api/persons', (request, response) => {
     }).end()
   }
 
-  const newPerson = {
+  const person = new Person({
     name: body.name,
     number: body.number,
     id: generateId()
-  }
+  })
 
-  persons = persons.concat(newPerson);
-
-  console.log(JSON.stringify(newPerson));
-  response.status(201).json(newPerson)
+  person.save()
+    .then(savedPerson => {
+      response.json(savedPerson);
+    })
+    .catch(error => {
+      response.status(500).json({ error: 'failed to save person' });
+    });
 
 });
 

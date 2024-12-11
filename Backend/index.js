@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
@@ -12,36 +13,18 @@ app.use(express.json());
 app.use(morgan('tiny'));
 app.use(express.static('dist'))
 
-let persons = [
-  {
-    "name": "Arto Hellas",
-    "number": "040-123456",
-    "id": "1"
-  },
-  {
-    "name": "Ada Lovelace",
-    "number": "39-44-5323523",
-    "id": "2"
-  },
-  {
-    "name": "Dan Abramov",
-    "number": "12-43-234345",
-    "id": "3"
-  },
-  {
-    "name": "Mary Poppendieck",
-    "number": "39-23-6423122",
-    "id": "4"
-  }
-]
+// MongoDB connection
+mongoose.set('strictQuery', false);
+const url = process.env.MONGODB_URI;
+console.log('connecting to', url);
 
-const generateId = () => {
-  const maxId = (persons.length > 0)
-    ? Math.max(...persons.map(p => Number(p.id)))
-    : 0
-    
-  return String(maxId + 1)
-}
+mongoose.connect(url)
+  .then(() => {
+    console.log('connected to MongoDB');
+  })
+  .catch((error) => {
+    console.log('error connecting to MongoDB:', error.message);
+  });
 
 app.get('/api/persons', (request, response) => {
   Person.find({}).then(persons => {
@@ -83,16 +66,11 @@ app.delete('/api/persons/:id', (request, response) => {
 
 app.post('/api/persons', (request, response) => {
   const body = request.body;
-  const nameExists = persons.some(person => person.name.toLowerCase() === body.name.toLowerCase())
 
   if(!(body.name) || !(body.number)){
     return response.status(400).json({
-      error: 'Bad request, no number or name provided'
-    }).end()
-  } else if(nameExists){
-    return response.status(400).json({
-      error: 'Name already exists'
-    }).end()
+      error: 'name or number missing'
+    });
   }
 
   const person = new Person({

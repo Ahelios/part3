@@ -2,7 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import services from '../services';
 
-function Personform({ handleSetPersons }) {
+function Personform({ handleSetPersons, persons }) {
 	const [newName, setNewName] = useState('');
 	const [newNumber, setNewNumber] = useState('');
 
@@ -18,18 +18,29 @@ function Personform({ handleSetPersons }) {
 		event.preventDefault();
 		const newPerson = { name: newName, number: newNumber };
 
-		services.createPerson(newPerson)
-		.then((response) => {
-			console.log(response.data)
-			handleSetPersons({
-				name: newName,
-				number: newNumber,
-				id: response.data.id
-			});
-			setNewName('');   
-      setNewNumber(''); 
-		});
-	}
+		const nameExists = persons.some((person) => person.name === newPerson.name);
+
+		if (nameExists) {
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+				const existingPerson = persons.find(person => newPerson.name === person.name)
+				console.log('Existing person:', existingPerson);
+
+        services.updatePersonsNumber(existingPerson.id, newPerson)
+          .then(response => {
+						handleSetPersons(response.data);
+            setNewName('');
+            setNewNumber('');
+          });
+      }
+    } else {
+      services.createPerson(newPerson)
+        .then(response => {
+          handleSetPersons(persons.concat(response.data));
+          setNewName('');
+          setNewNumber('');
+        });
+    }
+  }
 
 	return (
 		<>

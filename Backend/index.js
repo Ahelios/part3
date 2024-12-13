@@ -13,7 +13,6 @@ app.use(express.json());
 app.use(morgan('tiny'));
 app.use(express.static('dist'))
 
-// MongoDB connection
 mongoose.set('strictQuery', false);
 const url = process.env.MONGODB_URI;
 console.log('connecting to', url);
@@ -26,42 +25,54 @@ mongoose.connect(url)
     console.log('error connecting to MongoDB:', error.message);
   });
 
-app.get('/api/persons', (request, response) => {
-  Person.find({}).then(persons => {
-    response.json(persons)
-  })
+app.get('/api/persons', (request, response, next) => {
+  Person.find({})
+    .then(persons => {
+      response.json(persons)
+    })
+    .catch(error => next(error))
 })
 
-app.get('/info', (request, response) => {
-  const currentTime = new Date().toString();
+app.get('/info', (request, response, next) => {
+  Person.countDocuments({})
+    .then(count => {
+      const currentTime = new Date().toString();
+      const responseText = `
+        Phonebook has info for ${count} people.
+        <br/>
+        <br/>
+        ${currentTime}
+      `;
+      response.send(responseText);
+    })
+    .catch(error => next(error))
+});
 
-  const responseText = `
-    Phonebook has info for ${persons.length} people.
-    <br/>
-    <br/>
-    ${currentTime}
-  `
-
-  response.send(responseText);
-})
-
-app.get('/api/persons/:id', (request, response) => {
-  const searchedId = request.params.id;
-
-  const searchedPerson = persons.find(person => person.id === searchedId)
-
-  if (searchedPerson) {
-    return response.json(searchedPerson)
-  } else {
-    return response.status(404).end()
-  }
+app.get('/api/persons/:id', (request, response, next) => {
+  Person.findById(request.params.id)
+    .then(person => {
+      if (person) {
+        return response.json(person)
+      } else {
+        return response.status(404).end()
+      }
+    })
+    .catch(error => next(error));
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-  const searchedId = request.params.id
-  persons = persons.filter(person => person.id !== searchedId)
-
-  response.status(204).end()
+  Person.findByIdAndDelete(request.params.id)
+    .then(result => {
+      if (result) {
+        response.status(204).end()
+      } else {
+        response.status(404).json({ error: 'person not found' })
+      }
+    })
+    .catch(error => {
+      console.log('Error deleting person:', error.message)
+      response.status(500).json({ error: 'malformatted id' })
+    })
 })
 
 app.post('/api/persons', (request, response) => {
@@ -88,6 +99,38 @@ app.post('/api/persons', (request, response) => {
     });
 
 });
+
+app.put('/api/persons/:id', (request, response, next) => {
+  const { name, number } = request.body;
+
+  Person.findByIdAndUpdate(
+    request.params.id,
+    { name, number },
+    { new: true, runValidators: true, context: 'query' }
+  )
+    .then(updatedPerson => {
+      if (updatedPerson) {
+        response.json(updatedPerson);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch(error => next(error));
+});
+
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message); // Log the error for debugging
+  
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' });
+  }
+  
+  // Pass the error to the default Express error handler
+  next(error);
+};
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {

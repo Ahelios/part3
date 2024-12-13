@@ -24,15 +24,19 @@ function App() {
 		});
 	}, []);
 
-	function handleSetPersons(newPerson) {
-		const nameExists = persons.some(
-			(person) =>
-				person.name === newPerson.name || person.number === newPerson.number
-		);
-
-		nameExists
-			? alert(`${newPerson.name} is already added to phonebook`)
-			: setPersons(persons.concat(newPerson));
+	function handleSetPersons(updatedPerson) {
+		if (Array.isArray(updatedPerson)) {
+			setPersons(updatedPerson);
+		} else {
+			const existingIndex = persons.findIndex(p => p.id === updatedPerson.id);
+			if (existingIndex !== -1) {
+				const newPersons = [...persons];
+				newPersons[existingIndex] = updatedPerson;
+				setPersons(newPersons);
+			} else {
+				setPersons([...persons, updatedPerson]);
+			}
+		}
 	}
 
 	function handleSetSearchedValue(value) {
@@ -78,7 +82,7 @@ function App() {
 			<Notification isError={Error.isError} message={Error.message}/>
 			<Search handleSetSearchedValue={handleSetSearchedValue} />
 			<h2>Add new contact</h2>
-			<Personform handleSetPersons={handleSetPersons} />
+			<Personform handleSetPersons={handleSetPersons} persons={persons}/>
 			<h2>Numbers</h2>
 			<Persons persons={filteredPersons} onDelete={handleDeletePerson}/>
 		</div>

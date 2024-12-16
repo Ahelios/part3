@@ -2,7 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import services from '../services';
 
-function Personform({ handleSetPersons, persons }) {
+function Personform({ handleSetPersons, persons, setError, showNotification}) {
 	const [newName, setNewName] = useState('');
 	const [newNumber, setNewNumber] = useState('');
 
@@ -20,6 +20,11 @@ function Personform({ handleSetPersons, persons }) {
 
 		const nameExists = persons.some((person) => person.name === newPerson.name);
 
+		if(newName.length < 3) {
+			alert('Name must be at least 3 characters long');
+			return;
+		}
+		
 		if (nameExists) {
       if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
 				const existingPerson = persons.find(person => newPerson.name === person.name)
@@ -38,7 +43,14 @@ function Personform({ handleSetPersons, persons }) {
           handleSetPersons(persons.concat(response.data));
           setNewName('');
           setNewNumber('');
-        });
+					showNotification(`${newPerson.name} has been added.`, false);
+        })
+				.catch(error => {
+					const errorMessage = error.response 
+          ? error.response.data.error 
+          : 'An unexpected error occurred';
+        showNotification(errorMessage, true);
+      });
     }
   }
 

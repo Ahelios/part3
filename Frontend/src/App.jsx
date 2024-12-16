@@ -24,6 +24,13 @@ function App() {
 		});
 	}, []);
 
+	const showNotification = (message, isError = false) => {
+    setError({ isError, message });
+    setTimeout(() => {
+      setError({ isError: false, message: null });
+    }, 5000);
+  };
+
 	function handleSetPersons(updatedPerson) {
 		if (Array.isArray(updatedPerson)) {
 			setPersons(updatedPerson);
@@ -33,8 +40,10 @@ function App() {
 				const newPersons = [...persons];
 				newPersons[existingIndex] = updatedPerson;
 				setPersons(newPersons);
+				showNotification(`${updatedPerson.name} has been updated.`);
 			} else {
 				setPersons([...persons, updatedPerson]);
+				showNotification(`${updatedPerson.name} has been added.`);
 			}
 		}
 	}
@@ -51,16 +60,11 @@ function App() {
 		services.deletePerson(id)
 		.then(() => {
 			setPersons(persons.filter(person => person.id !== id))
-			setError({
-				isError: false,
-				message: personToDelete.name + "has been deleted"
-			})
+			showNotification(`${personToDelete.name} has been deleted`);
 		})
-		.finally(() => {
-			setTimeout(() => {
-				setError({ message: null, isError: false })
-			}, 5000)
-		})
+		.catch(error => {
+			showNotification(`Error deleting ${personToDelete.name}`, true);
+		});
 	}
 	}
 
@@ -82,7 +86,7 @@ function App() {
 			<Notification isError={Error.isError} message={Error.message}/>
 			<Search handleSetSearchedValue={handleSetSearchedValue} />
 			<h2>Add new contact</h2>
-			<Personform handleSetPersons={handleSetPersons} persons={persons}/>
+			<Personform handleSetPersons={handleSetPersons} persons={persons} setError={setError} showNotification={showNotification}/>
 			<h2>Numbers</h2>
 			<Persons persons={filteredPersons} onDelete={handleDeletePerson}/>
 		</div>

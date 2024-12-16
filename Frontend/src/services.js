@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const baseUrl = 'http://localhost:3001/api/persons'
+const baseUrl = '/api/persons'
 
 function getAllPersons () {
   const request = axios.get(baseUrl)
@@ -9,6 +9,7 @@ function getAllPersons () {
 }
 
 function createPerson(newPerson){
+  console.log(newPerson)
   const request = axios.post(baseUrl, newPerson)
   return request.then(response => response)
 }

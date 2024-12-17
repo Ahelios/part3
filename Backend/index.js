@@ -12,6 +12,15 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('tiny'));
 app.use(express.static('dist'))
+app.use((req, res, next) => {
+  console.log('Request:', {
+    method: req.method,
+    path: req.path,
+    body: req.body,
+    headers: req.headers
+  });
+  next();
+});
 
 mongoose.set('strictQuery', false);
 const url = process.env.MONGODB_URI;
@@ -22,7 +31,12 @@ mongoose.connect(url)
     console.log('connected to MongoDB');
   })
   .catch((error) => {
-    console.log('error connecting to MongoDB:', error.message);
+    console.log('MongoDB Connection Error Details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack
+    });
   });
 
 app.get('/api/persons', (request, response, next) => {
@@ -116,16 +130,25 @@ app.put('/api/persons/:id', (request, response, next) => {
 
 
 const errorHandler = (error, request, response, next) => {
-  console.error(error.message); // Log the error for debugging
-  
+  console.error('Detailed Error:', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    path: request.path,
+    method: request.method,
+    body: request.body
+  });
+
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' });
   } else if (error.name === 'ValidationError') {
     return response.status(400).json({ error: error.message });
+  } else if (error.name === 'MongooseError') {
+    return response.status(500).json({ error: 'Database connection error' });
   }
   
-  // Pass the error to the default Express error handler
-  next(error);
+  response.status(500).json({ error: 'Something went wrong' });
+  // next(error);
 };
 
 app.use(errorHandler);

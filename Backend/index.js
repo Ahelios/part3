@@ -1,16 +1,15 @@
-const mongoose = require('mongoose');
-const express = require('express');
-const morgan = require('morgan');
-const cors = require('cors');
-const path = require('path')
+const mongoose = require('mongoose')
+const express = require('express')
+const morgan = require('morgan')
+const cors = require('cors')
 require('dotenv').config()
 const Person = require('./models/person')
 
-const app = express();
+const app = express()
 
-app.use(cors());
-app.use(express.json());
-app.use(morgan('tiny'));
+app.use(cors())
+app.use(express.json())
+app.use(morgan('tiny'))
 app.use(express.static('dist'))
 app.use((req, res, next) => {
   console.log('Request:', {
@@ -18,17 +17,18 @@ app.use((req, res, next) => {
     path: req.path,
     body: req.body,
     headers: req.headers
-  });
-  next();
-});
+  })
 
-mongoose.set('strictQuery', false);
-const url = process.env.MONGODB_URI;
-console.log('connecting to', url);
+  next()
+})
+
+mongoose.set('strictQuery', false)
+const url = process.env.MONGODB_URI
+console.log('connecting to', url)
 
 mongoose.connect(url)
   .then(() => {
-    console.log('connected to MongoDB');
+    console.log('connected to MongoDB')
   })
   .catch((error) => {
     console.log('MongoDB Connection Error Details:', {
@@ -36,8 +36,8 @@ mongoose.connect(url)
       code: error.code,
       name: error.name,
       stack: error.stack
-    });
-  });
+    })
+  })
 
 app.get('/api/persons', (request, response, next) => {
   Person.find({})
@@ -50,17 +50,17 @@ app.get('/api/persons', (request, response, next) => {
 app.get('/info', (request, response, next) => {
   Person.countDocuments({})
     .then(count => {
-      const currentTime = new Date().toString();
+      const currentTime = new Date().toString()
       const responseText = `
         Phonebook has info for ${count} people.
         <br/>
         <br/>
         ${currentTime}
-      `;
-      response.send(responseText);
+      `
+      response.send(responseText)
     })
     .catch(error => next(error))
-});
+})
 
 app.get('/api/persons/:id', (request, response, next) => {
   Person.findById(request.params.id)
@@ -71,7 +71,7 @@ app.get('/api/persons/:id', (request, response, next) => {
         return response.status(404).end()
       }
     })
-    .catch(error => next(error));
+    .catch(error => next(error))
 })
 
 app.delete('/api/persons/:id', (request, response) => {
@@ -90,12 +90,12 @@ app.delete('/api/persons/:id', (request, response) => {
 })
 
 app.post('/api/persons', (request, response, next) => {
-  const body = request.body;
+  const body = request.body
 
   if(!(body.name) || !(body.number)){
     return response.status(400).json({
       error: 'name or number missing'
-    });
+    })
   }
 
   const person = new Person({
@@ -105,13 +105,13 @@ app.post('/api/persons', (request, response, next) => {
 
   person.save()
     .then(savedPerson => {
-      response.json(savedPerson);
+      response.json(savedPerson)
     })
-    .catch(error => next(error));
-});
+    .catch(error => next(error))
+})
 
 app.put('/api/persons/:id', (request, response, next) => {
-  const { name, number } = request.body;
+  const { name, number } = request.body
 
   Person.findByIdAndUpdate(
     request.params.id,
@@ -120,13 +120,13 @@ app.put('/api/persons/:id', (request, response, next) => {
   )
     .then(updatedPerson => {
       if (updatedPerson) {
-        response.json(updatedPerson);
+        response.json(updatedPerson)
       } else {
-        response.status(404).end();
+        response.status(404).end()
       }
     })
-    .catch(error => next(error));
-});
+    .catch(error => next(error))
+})
 
 
 const errorHandler = (error, request, response, next) => {
@@ -137,21 +137,19 @@ const errorHandler = (error, request, response, next) => {
     path: request.path,
     method: request.method,
     body: request.body
-  });
+  })
 
   if (error.name === 'CastError') {
-    return response.status(400).send({ error: 'malformatted id' });
+    return response.status(400).send({ error: 'malformatted id' })
   } else if (error.name === 'ValidationError') {
-    return response.status(400).json({ error: error.message });
+    return response.status(400).json({ error: error.message })
   } else if (error.name === 'MongooseError') {
-    return response.status(500).json({ error: 'Database connection error' });
+    return response.status(500).json({ error: 'Database connection error' })
   }
-  
-  response.status(500).json({ error: 'Something went wrong' });
-  // next(error);
-};
+  next(error)
+}
 
-app.use(errorHandler);
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
